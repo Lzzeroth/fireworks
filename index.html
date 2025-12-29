@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绚丽烟花模拟器</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <canvas id="fireworksCanvas"></canvas>
+    
+    <!-- 控制面板 -->
+    <div class="control-panel collapsed">
+        <div class="panel-header">
+            <h2>🎆 烟花控制台</h2>
+        </div>
+        <div class="panel-content">
+            <div class="control-group">
+                <label for="particleCount">粒子数量：<span id="particleCountValue">80</span></label>
+                <input type="range" id="particleCount" min="30" max="150" value="80">
+            </div>
+            <div class="control-group">
+                <label for="explosionPower">爆炸强度：<span id="explosionPowerValue">8</span></label>
+                <input type="range" id="explosionPower" min="3" max="15" value="8">
+            </div>
+            <div class="control-group">
+                <label for="gravity">重力效果：<span id="gravityValue">0.15</span></label>
+                <input type="range" id="gravity" min="0.05" max="0.3" step="0.01" value="0.15">
+            </div>
+            <div class="control-group">
+                <label for="trailLength">拖尾长度：<span id="trailLengthValue">0.15</span></label>
+                <input type="range" id="trailLength" min="0.05" max="0.3" step="0.01" value="0.15">
+            </div>
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="shapeMode" checked>
+                    <span>✨ 启用形状效果（心形/星形/文字）</span>
+                </label>
+            </div>
+            <div class="control-group">
+                <label for="customText">自定义文字：</label>
+                <input type="text" id="customText" placeholder="输入要显示的文字" maxlength="6" value="新年快乐">
+            </div>
+            <div class="control-group">
+                <button id="autoModeBtn" class="btn-primary">🚀 自动模式</button>
+                <button id="clearBtn" class="btn-secondary">🧹 清空画布</button>
+            </div>
+            <div class="tips">
+                💡 点击屏幕任意位置发射烟花<br>
+                ✨ 形状效果会随机出现
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="stats">
+        <div class="stats-icon">›</div>
+        <div class="stats-content">
+            <div class="stat-item">
+                <span class="stat-label">活跃粒子：</span>
+                <span id="particleStats">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">烟花数量：</span>
+                <span id="fireworkStats">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">FPS：</span>
+                <span id="fpsStats">60</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
