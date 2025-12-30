@@ -5,7 +5,7 @@ import { ShapeGenerator } from './shapes.js';
  * 烟花类 - 管理单个烟花的爆炸效果
  */
 export class Firework {
-    constructor(x, y, config, shapeType = null, customText = '') {
+    constructor(x, y, config, shapeType = null, customText = '', audioManager = null) {
         this.x = x;
         this.y = y;
         this.config = config;
@@ -15,6 +15,11 @@ export class Firework {
         this.customText = customText;
         this.shapeHoldTime = 0;
         this.maxShapeHoldTime = 60; // 形状保持60帧（约1秒）
+        this.audioManager = audioManager; // 音效管理器
+        this.cracklePlayedForShape = false; // 标记是否已为形状播放噼啪音效
+        
+        // 随机生成烟花的深度层级 (0.3-1.0)
+        this.depth = Math.random() * 0.7 + 0.3;
         
         // 创建爆炸粒子
         this.createParticles();
@@ -51,24 +56,25 @@ export class Firework {
         if (this.shapeType) {
             let positions = [];
             
-            // 移动端适配缩放系数
+            // 移动端适配缩放系数，同时考虑深度
             const baseScale = isMobile ? Math.min(screenWidth / 400, 1) : 1;
+            const depthScale = baseScale * this.depth;
             
             switch (this.shapeType) {
                 case 'heart':
-                    // 调整心形大小
-                    positions = ShapeGenerator.generateHeart(this.x, this.y, particleCount, 100 * baseScale);
+                    // 调整心形大小，远处的心形更小
+                    positions = ShapeGenerator.generateHeart(this.x, this.y, particleCount, 100 * depthScale);
                     break;
                 case 'star':
-                    // 调整星形大小
-                    positions = ShapeGenerator.generateStar(this.x, this.y, particleCount, 50 * baseScale);
+                    // 调整星形大小，远处的星形更小
+                    positions = ShapeGenerator.generateStar(this.x, this.y, particleCount, 50 * depthScale);
                     break;
                 case 'text':
                     // 文字大小需要根据字数动态调整，防止超出屏幕
                     // 估算最大可用宽度 (屏幕宽度的 80%)
                     const maxTextWidth = screenWidth * 0.8;
-                    // 基础字体大小
-                    let fontSize = isMobile ? 60 : 100;
+                    // 基础字体大小，考虑深度
+                    let fontSize = (isMobile ? 60 : 100) * this.depth;
                     
                     // 估算总宽度 (假设字宽等于字高)
                     const estimatedTotalWidth = fontSize * text.length;
@@ -82,7 +88,7 @@ export class Firework {
                     break;
             }
             
-            // 为每个位置创建粒子
+            // 为每个位置创建粒子，传入深度信息
             positions.forEach(pos => {
                 const velocity = {
                     x: 0,
@@ -90,31 +96,43 @@ export class Firework {
                 };
                 
                 const color = colors[Math.floor(Math.random() * colors.length)];
-                const particle = new Particle(pos.x, pos.y, color, velocity, this.config);
+                const particle = new Particle(pos.x, pos.y, color, velocity, this.config, this.depth);
                 particle.targetX = pos.x;
                 particle.targetY = pos.y;
                 particle.isShapeMode = true;
-                // 形状模式下粒子稍微大一点点
-                particle.size = Math.random() * 1.5 + 2;
+                // 形状模式下粒子稍微大一点点，但也受深度影响
+                particle.size = (Math.random() * 1.5 + 2) * this.depth;
                 this.particles.push(particle);
             });
         } else {
-            // 普通圆形爆炸模式
-            for (let i = 0; i < particleCount; i++) {
-                const angle = (Math.PI * 2 * i) / particleCount;
-                const speed = Math.random() * this.config.explosionPower + 2;
+            // 普通圆形爆炸模式 - 分层爆炸效果
+            // 创建3个深度层级的粒子
+            const depthLayers = [
+                { depth: this.depth * 0.6, ratio: 0.2 },      // 远景层 (20%粒子)
+                { depth: this.depth * 0.85, ratio: 0.3 },     // 中景层 (30%粒子)
+                { depth: this.depth, ratio: 0.5 }             // 近景层 (50%粒子)
+            ];
+            
+            depthLayers.forEach(layer => {
+                const layerParticleCount = Math.floor(particleCount * layer.ratio);
                 
-                const velocity = {
-                    x: Math.cos(angle) * speed,
-                    y: Math.sin(angle) * speed
-                };
+                for (let i = 0; i < layerParticleCount; i++) {
+                    const angle = (Math.PI * 2 * i) / layerParticleCount;
+                    // 远处粒子爆炸速度视觉上更慢
+                    const speed = (Math.random() * this.config.explosionPower + 2) * layer.depth;
+                    
+                    const velocity = {
+                        x: Math.cos(angle) * speed,
+                        y: Math.sin(angle) * speed
+                    };
 
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                
-                this.particles.push(
-                    new Particle(this.x, this.y, color, velocity, this.config)
-                );
-            }
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    this.particles.push(
+                        new Particle(this.x, this.y, color, velocity, this.config, layer.depth)
+                    );
+                }
+            });
         }
 
         this.exploded = true;
@@ -165,8 +183,14 @@ export class Firework {
             return;
         }
         
-        // 形状保持时间结束后，让粒子开始下落
+        // 形状保持时间结束后，让粒子开始下落，并播放噼啪音效
         if (this.shapeType && this.shapeHoldTime === this.maxShapeHoldTime) {
+            // 播放噼啪音效（仅播放一次）
+            if (!this.cracklePlayedForShape && this.audioManager) {
+                this.audioManager.playCrackleSound(this.depth);
+                this.cracklePlayedForShape = true;
+            }
+            
             this.particles.forEach(particle => {
                 if (particle.isShapeMode) {
                     // 给粒子一个随机的初始速度，让它们散开
@@ -196,7 +220,10 @@ export class Firework {
      * 绘制烟花
      */
     draw(ctx) {
-        this.particles.forEach(particle => {
+        // 按深度排序粒子，先绘制远处的粒子（深度小的）
+        const sortedParticles = [...this.particles].sort((a, b) => a.depth - b.depth);
+        
+        sortedParticles.forEach(particle => {
             particle.draw(ctx);
         });
     }

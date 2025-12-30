@@ -18,9 +18,10 @@ class App {
         this.trailLengthSlider = document.getElementById('trailLength');
         this.trailLengthValue = document.getElementById('trailLengthValue');
         this.shapeModeCheckbox = document.getElementById('shapeMode');
+        this.autoFireworkCountSlider = document.getElementById('autoFireworkCount');
+        this.autoFireworkCountValue = document.getElementById('autoFireworkCountValue');
         this.customTextInput = document.getElementById('customText');
         this.autoModeBtn = document.getElementById('autoModeBtn');
-        this.clearBtn = document.getElementById('clearBtn');
         
         // 统计元素
         this.particleStats = document.getElementById('particleStats');
@@ -101,6 +102,21 @@ class App {
             }, { passive: true });
         }
 
+        // 统计信息面板交互（移动端点击切换）
+        const statsPanel = document.querySelector('.stats');
+        if (statsPanel) {
+            // 点击切换展开/收起
+            statsPanel.addEventListener('click', (e) => {
+                e.stopPropagation();
+                statsPanel.classList.toggle('expanded');
+            });
+            
+            // 触摸事件防穿透
+            statsPanel.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: true });
+        }
+
         // 画布点击事件
         this.canvas.addEventListener('click', (e) => {
             this.handleCanvasClick(e);
@@ -149,6 +165,13 @@ class App {
             this.simulator.updateConfig({ shapeMode: e.target.checked });
         });
 
+        // 自动烟花数量滑块
+        this.autoFireworkCountSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            this.autoFireworkCountValue.textContent = value;
+            this.simulator.updateConfig({ autoFireworkCount: value });
+        });
+
         // 自定义文字输入框
         this.customTextInput.addEventListener('input', (e) => {
             this.simulator.updateConfig({ customText: e.target.value });
@@ -163,11 +186,6 @@ class App {
                 : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         });
 
-        // 清空按钮
-        this.clearBtn.addEventListener('click', () => {
-            this.simulator.clear();
-        });
-
         // 键盘快捷键
         document.addEventListener('keydown', (e) => {
             switch(e.key.toLowerCase()) {
@@ -177,9 +195,6 @@ class App {
                     break;
                 case 'a':
                     this.simulator.toggleAutoMode();
-                    break;
-                case 'c':
-                    this.simulator.clear();
                     break;
             }
         });

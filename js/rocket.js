@@ -15,7 +15,7 @@ export class Rocket {
         const dx = targetX - startX;
         const dy = targetY - startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const speed = 8; // 火箭速度
+        const speed = 5; // 火箭速度（降低速度使升空更慢更真实）
         
         this.velocity = {
             x: (dx / distance) * speed,
@@ -26,9 +26,12 @@ export class Rocket {
         const colors = ['#FFD700', '#FF6347', '#00CED1', '#FF1493', '#00FF00', '#FF8C00'];
         this.color = colors[Math.floor(Math.random() * colors.length)];
         
+        // 随机深度 (0.4-1.0)
+        this.depth = Math.random() * 0.6 + 0.4;
+        
         // 尾迹粒子
         this.trail = [];
-        this.maxTrailLength = 20;
+        this.maxTrailLength = Math.floor(20 * this.depth); // 远处火箭尾迹更短
         
         // 状态
         this.exploded = false;
@@ -77,9 +80,11 @@ export class Rocket {
         // 绘制尾迹
         this.trail.forEach((particle, index) => {
             ctx.save();
-            ctx.globalAlpha = particle.alpha * 0.6;
+            // 根据深度调整尾迹透明度
+            ctx.globalAlpha = particle.alpha * 0.6 * (0.5 + this.depth * 0.5);
             ctx.fillStyle = this.color;
-            const size = (index + 1) / this.trail.length * 3;
+            // 根据深度调整尾迹大小
+            const size = ((index + 1) / this.trail.length * 3) * this.depth;
             ctx.beginPath();
             ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
             ctx.fill();
@@ -89,19 +94,21 @@ export class Rocket {
         // 绘制火箭主体
         ctx.save();
         ctx.fillStyle = this.color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 * this.depth;
         ctx.shadowColor = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+        // 根据深度调整火箭大小
+        ctx.arc(this.x, this.y, 4 * this.depth, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
         // 绘制火箭光晕
         ctx.save();
-        ctx.globalAlpha = 0.3;
+        // 远处火箭光晕更弱
+        ctx.globalAlpha = 0.3 * this.depth;
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, 8 * this.depth, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }
@@ -128,9 +135,9 @@ export class Rocket {
     }
 
     /**
-     * 获取当前位置
+     * 获取当前位置和深度
      */
     getPosition() {
-        return { x: this.x, y: this.y };
+        return { x: this.x, y: this.y, depth: this.depth };
     }
 }

@@ -38,8 +38,11 @@ body {
     cursor: pointer;
 }
 
-.control-panel:hover {
-    box-shadow: 0 12px 48px rgba(138, 43, 226, 0.3);
+/* 桌面端hover效果 */
+@media (hover: hover) and (pointer: fine) {
+    .control-panel:hover {
+        box-shadow: 0 12px 48px rgba(138, 43, 226, 0.3);
+    }
 }
 
 .control-panel.collapsed {
@@ -270,12 +273,34 @@ button {
     cursor: pointer;
 }
 
-.stats:hover {
+/* 桌面端hover效果 */
+@media (hover: hover) and (pointer: fine) {
+    .stats:hover {
+        left: 0;
+        width: 220px;
+        height: auto;
+        border-radius: 0 12px 12px 0;
+        padding: 15px 20px;
+    }
+
+    .stats:hover .stats-content {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* 移动端展开状态 */
+.stats.expanded {
     left: 0;
     width: 220px;
     height: auto;
     border-radius: 0 12px 12px 0;
     padding: 15px 20px;
+}
+
+.stats.expanded .stats-content {
+    opacity: 1;
+    visibility: visible;
 }
 
 .stats-icon {
@@ -299,11 +324,6 @@ button {
     margin-left: 15px;
     flex: 1;
     white-space: nowrap;
-}
-
-.stats:hover .stats-content {
-    opacity: 1;
-    visibility: visible;
 }
 
 .stat-item {
@@ -398,14 +418,25 @@ footer a:hover {
         font-size: 13px;
     }
 
+    /* 移动端统计信息样式 */
     .stats {
         bottom: 0;
         left: -23px;
         padding: 10px 22px 18px 22px;
     }
 
-    .stats:hover {
+    /* 移动端不使用hover，只通过expanded类控制 */
+    .stats.expanded {
         left: 0;
+        width: 220px;
+        height: auto;
+        border-radius: 0 12px 12px 0;
+        padding: 15px 20px;
+    }
+
+    .stats.expanded .stats-content {
+        opacity: 1;
+        visibility: visible;
     }
 
     .stat-item {

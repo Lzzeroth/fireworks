@@ -1,6 +1,7 @@
 import { Firework } from './firework.js';
 import { Rocket } from './rocket.js';
 import { ShapeGenerator } from './shapes.js';
+import { AudioManager } from './audio.js';
 
 /**
  * 烟花模拟器主类
@@ -12,12 +13,13 @@ export class FireworkSimulator {
         this.fireworks = [];
         this.rockets = [];
         this.config = {
-            particleCount: 80,
+            particleCount: 100,
             explosionPower: 8,
             gravity: 0.15,
             trailLength: 0.15,
             shapeMode: true,
-            customText: '新年快乐'
+            customText: '新年快乐',
+            autoFireworkCount: 5
         };
         this.autoMode = false;
         this.autoModeInterval = null;
@@ -27,6 +29,9 @@ export class FireworkSimulator {
         this.lastFrameTime = performance.now();
         this.frameCount = 0;
         this.fpsUpdateTime = performance.now();
+
+        // 音效管理器
+        this.audioManager = new AudioManager();
 
         this.init();
     }
@@ -58,17 +63,33 @@ export class FireworkSimulator {
      * 创建烟花（带升空效果）
      */
     createFirework(x, y) {
+        // 恢复音频上下文（用户交互后）
+        this.audioManager.resumeAudioContext();
+        
         // 从屏幕底部发射火箭
         const startX = x;
         const startY = this.canvas.height;
+        
+        // 计算火箭飞行时间（用于音效持续时间）
+        const dx = x - startX;
+        const dy = y - startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const speed = 5; // 与rocket.js中的速度保持一致
+        const flightTime = distance / speed / 60; // 转换为秒（假设60fps）
+        
+        // 创建火箭
         const rocket = new Rocket(startX, startY, x, y, this.config);
+        
+        // 播放升空音效，持续时间与飞行时间匹配，音量根据火箭深度调整
+        this.audioManager.playLaunchSound(flightTime, rocket.depth);
+        
         this.rockets.push(rocket);
     }
 
     /**
      * 直接在指定位置创建烟花爆炸（无升空效果）
      */
-    createFireworkDirect(x, y) {
+    createFireworkDirect(x, y, depth = null) {
         let shapeType = null;
         let customText = '';
         
@@ -80,7 +101,15 @@ export class FireworkSimulator {
             }
         }
         
-        const firework = new Firework(x, y, this.config, shapeType, customText);
+        const firework = new Firework(x, y, this.config, shapeType, customText, this.audioManager);
+        // 如果提供了深度信息，使用火箭的深度
+        if (depth !== null) {
+            firework.depth = depth;
+        }
+        
+        // 播放爆炸音效，音量根据烟花深度调整
+        this.audioManager.playExplosionSound(firework.depth);
+        
         this.fireworks.push(firework);
     }
 
@@ -101,7 +130,7 @@ export class FireworkSimulator {
         
         this.autoMode = true;
         this.autoModeInterval = setInterval(() => {
-            const count = Math.floor(Math.random() * 2) + 1;
+            const count = this.config.autoFireworkCount || 5;
             for (let i = 0; i < count; i++) {
                 setTimeout(() => {
                     this.createRandomFirework();
@@ -155,7 +184,8 @@ export class FireworkSimulator {
             // 检查火箭是否到达目标位置
             if (this.rockets[i].hasReachedTarget() && !this.rockets[i].isExploded()) {
                 const pos = this.rockets[i].getPosition();
-                this.createFireworkDirect(pos.x, pos.y);
+                // 传递火箭的深度给烟花
+                this.createFireworkDirect(pos.x, pos.y, pos.depth);
                 this.rockets[i].explode();
                 this.rockets.splice(i, 1);
             }
@@ -193,7 +223,9 @@ export class FireworkSimulator {
      */
     draw() {
         // 使用半透明黑色覆盖，创建拖尾效果
-        this.ctx.fillStyle = `rgba(10, 10, 26, ${this.config.trailLength})`;
+        // 反转trailLength值：数值越大，透明度越小，拖尾越长
+        const fadeAlpha = 0.35 - this.config.trailLength;
+        this.ctx.fillStyle = `rgba(10, 10, 26, ${fadeAlpha})`;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // 绘制所有火箭
